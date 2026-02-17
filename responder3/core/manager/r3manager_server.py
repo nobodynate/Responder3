@@ -167,10 +167,12 @@ if __name__ == '__main__':
 	shutdown_evt = asyncio.Queue()
 	
 	r3m = Responder3ManagerServer(config, logger, manager_log_queue, cmd_q_in, cmd_q_out, shutdown_evt)
-	
-	asyncio.ensure_future(logger.run())
-	asyncio.ensure_future(print_cmd_queue(cmd_q_out))
-	loop = asyncio.get_event_loop()	
-	loop.run_until_complete(r3m.run())
+
+	async def _run():
+		asyncio.ensure_future(logger.run())
+		asyncio.ensure_future(print_cmd_queue(cmd_q_out))
+		await r3m.run()
+
+	asyncio.run(_run())
 	
 	

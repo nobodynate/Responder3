@@ -98,7 +98,7 @@ class Connection:
 		self.remote_port = None
 		self.local_ip    = None
 		self.local_port  = None
-		self.timestamp   = datetime.datetime.utcnow()
+		self.timestamp   = datetime.datetime.now(datetime.timezone.utc)
 		self.writer = None
 
 	def get_remote_print_address(self):
@@ -298,23 +298,14 @@ def get_platform():
 		return ResponderPlatform.UNKNOWN
 
 
-# thank you Python developers who after A FUCKING DECADE
-# could not figure out a way to make your datetime.datetime
-# object in a format that is reversible
-# now it's either this bullshit "solution" OR installing a 3rd party
-# lib that have to GUESS YOUR SHITTY FORMAT
-# PS: "isoformat" doesn't even conforming to the ISO standard..
 def isoformat2dt(isostr):
 	"""
-	Converts back the string result of datetime.datateime.isoformat() to a datetime.datetime object
+	Converts back the string result of datetime.datetime.isoformat() to a datetime.datetime object
 	:param isostr: string output of datetime.datetime.isoformat()
 	:type isostr: str
 	:return: datetime.datetime
 	"""
-	dt, _, us = isostr.partition(".")
-	dt = datetime.datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S")
-	us = int(us.rstrip("Z"), 10)
-	return dt + datetime.timedelta(microseconds=us)
+	return datetime.datetime.fromisoformat(isostr)
 
 
 # https://gist.github.com/ImmortalPC/c340564823f283fe530b

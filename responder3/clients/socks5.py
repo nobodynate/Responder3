@@ -106,22 +106,20 @@ class Socks5Client:
 		self.server_props = None
 		self.server_coro = None
 		self.clients = {}
-		self.loop = asyncio.get_event_loop()
+		self.loop = None
 		self.timeout = None
 
 
-	@asyncio.coroutine
-	def generic_read(self, reader):
-		return reader.read(1024)
+	async def generic_read(self, reader):
+		return await reader.read(1024)
 
-	@asyncio.coroutine
-	def proxy_forwarder(self, reader, writer, reader_address, stop_event, timeout = None):
+	async def proxy_forwarder(self, reader, writer, reader_address, stop_event, timeout = None):
 		reader_address = '%s:%d' % reader_address
 		writer_address = '%s:%d' % writer.get_extra_info('peername')
 		logging.debug('Proxy starting %s -> %s' % (reader_address, writer_address))
 		while not stop_event.is_set():
 			try:
-				data = yield from asyncio.wait_for(self.generic_read(reader), timeout=timeout)
+				data = await asyncio.wait_for(self.generic_read(reader), timeout=timeout)
 			except asyncio.TimeoutError:
 				logging.exception()
 				stop_event.set()
@@ -136,7 +134,7 @@ class Socks5Client:
 
 			try:
 				writer.write(data)
-				yield from asyncio.wait_for(writer.drain(), timeout=timeout)
+				await asyncio.wait_for(writer.drain(), timeout=timeout)
 			except asyncio.TimeoutError:
 				logging.debug('Remote server timed out!')
 				stop_event.set()
@@ -151,11 +149,10 @@ class Socks5Client:
 		except Exception as e:
 			raise e
 
-	@asyncio.coroutine
-	def connect_proxy(self, serverconfig):
+	async def connect_proxy(self, serverconfig):
 		print('Connecting to socks5 proxy %s:%d...' % serverconfig.get_addr())
 		try:
-			reader, writer = yield from asyncio.wait_for(
+			reader, writer = await asyncio.wait_for(
 				asyncio.open_connection(
 					host=serverconfig.ip,
 					port=serverconfig.port
@@ -167,8 +164,7 @@ class Socks5Client:
 		except Exception as e:
 			logging.exception('Failed to connect to proxy!')
 
-	@asyncio.coroutine
-	def create_tunnel(self, target, server, proxy_reader, proxy_writer):
+	async def create_tunnel(self, target, server, proxy_reader, proxy_writer):
 		logging.info('Establishing proxy connection %s => %s' % (server.get_paddr(), target.get_paddr()))
 		authmethods = [SOCKS5Method.NOAUTH]
 		if server.username is not None:
@@ -176,9 +172,9 @@ class Socks5Client:
 
 		logging.debug('Sending negotiation command to %s:%d' % proxy_writer.get_extra_info('peername'))
 		proxy_writer.write(SOCKS5Nego.construct(authmethods).to_bytes())
-		t = yield from asyncio.wait_for(proxy_writer.drain(), timeout = 1)
+		t = await asyncio.wait_for(proxy_writer.drain(), timeout = 1)
 
-		rep_nego = yield from asyncio.wait_for(SOCKS5NegoReply.from_streamreader(proxy_reader), timeout = self.timeout)
+		rep_nego = await asyncio.wait_for(SOCKS5NegoReply.from_streamreader(proxy_reader), timeout = self.timeout)
 		logging.debug('Got negotiation reply from %s: %s' % (proxy_writer.get_extra_info('peername'), repr(rep_nego)))
 		if rep_nego.METHOD == SOCKS5Method.NOTACCEPTABLE:
 			raise Exception('Failed to connect to proxy %s:%d! No common authentication type!' % proxy_writer.get_extra_info('peername'))
@@ -186,17 +182,17 @@ class Socks5Client:
 		if rep_nego.METHOD == SOCKS5Method.PLAIN:
 			logging.debug('Preforming plaintext auth to %s:%d' % proxy_writer.get_extra_info('peername'))
 			proxy_writer.write(SOCKS5PlainAuth.construct(server.username, server.password).to_bytes())
-			t = yield from asyncio.wait_for(proxy_writer.drain(), timeout=1)
-			rep_auth_nego = yield from asyncio.wait_for(SOCKS5NegoReply.from_streamreader(proxy_reader), timeout = self.timeout)
+			t = await asyncio.wait_for(proxy_writer.drain(), timeout=1)
+			rep_auth_nego = await asyncio.wait_for(SOCKS5NegoReply.from_streamreader(proxy_reader), timeout = self.timeout)
 
 			if rep_auth_nego.METHOD != SOCKS5Method.NOAUTH:
 				raise Exception('Failed to connect to proxy %s:%d! Authentication failed!' % proxy_writer.get_extra_info('peername'))
 
 		logging.debug('Sending connect request to %s:%d' % proxy_writer.get_extra_info('peername'))
 		proxy_writer.write(SOCKS5Request.construct(SOCKS5Command.CONNECT, target.get_addr()[0], target.get_addr()[1]).to_bytes())
-		t = yield from asyncio.wait_for(proxy_writer.drain(), timeout=1)
+		t = await asyncio.wait_for(proxy_writer.drain(), timeout=1)
 
-		rep = yield from asyncio.wait_for(SOCKS5Reply.from_streamreader(proxy_reader), timeout=self.timeout)
+		rep = await asyncio.wait_for(SOCKS5Reply.from_streamreader(proxy_reader), timeout=self.timeout)
 		if rep.REP != SOCKS5ReplyType.SUCCEEDED:
 			logging.info('Failed to connect to proxy %s! Server replied: %s' % (proxy_writer.get_extra_info('peername'), repr(rep.REP)))
 			raise Exception('Authentication failure!')
@@ -211,69 +207,67 @@ class Socks5Client:
 			return proxy_reader, proxy_writer
 
 		else:
-			reader, writer = yield from asyncio.wait_for(
+			reader, writer = await asyncio.wait_for(
 				asyncio.open_connection(host=str(rep.BIND_ADDR), port=rep.BIND_PORT),
 				timeout=10)
 			logging.info('Proxy connection succeeded')
 			return reader, writer
 
-	@asyncio.coroutine
-	def get_multitunnel(self, servers, target, recursion = 0, proxy_reader = None, proxy_writer = None):
+	async def get_multitunnel(self, servers, target, recursion = 0, proxy_reader = None, proxy_writer = None):
 		"""
 		should return a socket or throw exception
 		"""
 		if proxy_reader is None:
-			proxy_reader, proxy_writer = yield from asyncio.wait_for(self.connect_proxy(servers[recursion]), timeout=10)
+			proxy_reader, proxy_writer = await asyncio.wait_for(self.connect_proxy(servers[recursion]), timeout=10)
 
 		if recursion < (len(servers) - 1):
 			taddr = proxy_writer.get_extra_info('peername')
-			proxy_reader, proxy_writer = yield from asyncio.wait_for(self.create_tunnel(servers[recursion+1], servers[recursion], proxy_reader, proxy_writer), timeout = 10)
+			proxy_reader, proxy_writer = await asyncio.wait_for(self.create_tunnel(servers[recursion+1], servers[recursion], proxy_reader, proxy_writer), timeout = 10)
 			if proxy_writer.get_extra_info('peername') != taddr:
 				# here the server opens a different socet for us, but following this would require
 				# an algo that is too complex for me
 				raise Exception('Socks5 server at %s:%d opened a different tunneling socket than the one we connected to! This feature is not supported yet! You may want to remove this server from your list' % taddr)
 			else:
-				proxy_reader, proxy_writer = yield from asyncio.wait_for(
+				proxy_reader, proxy_writer = await asyncio.wait_for(
 					self.get_multitunnel(
 						servers, target, recursion = recursion+1, proxy_reader = proxy_reader, proxy_writer = proxy_writer
 					),
 					timeout = 10
 				)
 				return proxy_reader, proxy_writer
-		
+
 		else:
 			taddr = proxy_writer.get_extra_info('peername')
-			proxy_reader, proxy_writer = yield from asyncio.wait_for(self.create_tunnel(target, servers[recursion], proxy_reader, proxy_writer), timeout = 10)
+			proxy_reader, proxy_writer = await asyncio.wait_for(self.create_tunnel(target, servers[recursion], proxy_reader, proxy_writer), timeout = 10)
 			if proxy_writer.get_extra_info('peername') != taddr:
 				raise Exception('Socks5 server at %s:%d opened a different tunneling socket than the one we connected to! This feature is not supported yet! You may want to remove this server from your list' % taddr)
 
 			return proxy_reader, proxy_writer
 
-	@asyncio.coroutine
-	def proxyfy(self, client_reader, client_writer):
+	async def proxyfy(self, client_reader, client_writer):
 		stop_event = asyncio.Event()
 		target = SOCKS5ServerConfig.construct(self.remote_addr, self.remote_port)
 		if len(self.servers) == 1:
-			proxy_reader, proxy_writer = yield from asyncio.wait_for(self.connect_proxy(self.servers[0]), timeout = 10)
-			proxy_reader, proxy_writer = yield from asyncio.wait_for(self.create_tunnel(target, self.servers[0], proxy_reader, proxy_writer), timeout = 10)
+			proxy_reader, proxy_writer = await asyncio.wait_for(self.connect_proxy(self.servers[0]), timeout = 10)
+			proxy_reader, proxy_writer = await asyncio.wait_for(self.create_tunnel(target, self.servers[0], proxy_reader, proxy_writer), timeout = 10)
 
 		else:
 			servers = copy.deepcopy(self.servers)
 			if self.randomize_servers:
 				shuffle(servers)
 			logging.info(servers)
-			proxy_reader, proxy_writer = yield from asyncio.wait_for(self.get_multitunnel(servers, target), timeout = 10)
+			proxy_reader, proxy_writer = await asyncio.wait_for(self.get_multitunnel(servers, target), timeout = 10)
 
-		task = asyncio.Task(self.proxy_forwarder(proxy_reader, client_writer, proxy_writer.get_extra_info('peername'), stop_event))
-		task = asyncio.Task(self.proxy_forwarder(client_reader, proxy_writer, client_writer.get_extra_info('peername'), stop_event))
+		asyncio.create_task(self.proxy_forwarder(proxy_reader, client_writer, proxy_writer.get_extra_info('peername'), stop_event))
+		asyncio.create_task(self.proxy_forwarder(client_reader, proxy_writer, client_writer.get_extra_info('peername'), stop_event))
 
 		logging.info('Tunnel is ready!')
-		t = yield from asyncio.wait_for(stop_event.wait(), timeout = None)
+		await asyncio.wait_for(stop_event.wait(), timeout = None)
 		return
 
 	def handle_client(self, client_reader, client_writer):
 		logging.info('Client connected from %s:%d' % client_writer.get_extra_info('peername'))
-		task = asyncio.Task(self.proxyfy(client_reader, client_writer))
+		task = asyncio.create_task(self.proxyfy(client_reader, client_writer))
 		self.clients[task] = (client_reader, client_writer)
 
 		def client_done(task):
@@ -283,14 +277,17 @@ class Socks5Client:
 
 		task.add_done_callback(client_done)
 		return
-		
+
+	async def _async_run(self):
+		self.create_listener_socket_config()
+		server = await asyncio.start_server(self.handle_client, sock=self.listener_socket_config)
+		logging.info('Server started!')
+		async with server:
+			await server.serve_forever()
+
 	def run(self):
 		try:
-			self.create_listener_socket_config()
-			self.server_coro = asyncio.start_server(self.handle_client, sock=self.listener_socket_config)
-			logging.info('Server started!')
-			self.loop.run_until_complete(self.server_coro)
-			self.loop.run_forever()
+			asyncio.run(self._async_run())
 
 		except KeyboardInterrupt:
 			sys.exit(0)

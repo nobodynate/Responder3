@@ -38,7 +38,7 @@ class KERBEROS(ResponderServer):
 		"""
 		
 		#contructing error message
-		now = datetime.datetime.utcnow()
+		now = datetime.datetime.now(datetime.timezone.utc)
 		
 		ed = ETYPE_INFO2([ETYPE_INFO2_ENTRY({'etype' : EncryptionType.ARCFOUR_HMAC_MD5.value})])
 		pa = PA_DATA({'padata-type': PaDataType.ETYPE_INFO2.value, 'padata-value': ed.dump()})

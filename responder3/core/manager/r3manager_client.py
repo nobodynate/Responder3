@@ -98,8 +98,10 @@ if __name__ == '__main__':
 	server_url = 'ws://127.0.0.1:9191'
 	
 	r3c = Responder3ManagerClient(server_url, config, logger, manager_log_queue, cmd_q_in, cmd_q_out, shutdown_evt)
-	
-	loop = asyncio.get_event_loop()
-	asyncio.ensure_future(logger.run())
-	loop.run_until_complete(r3c.run())
+
+	async def _run():
+		asyncio.ensure_future(logger.run())
+		await r3c.run()
+
+	asyncio.run(_run())
 	

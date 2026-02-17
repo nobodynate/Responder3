@@ -55,13 +55,12 @@ class UDPReader:
 		self._addr = addr
 		self.buff = io.BytesIO(data)
 
-	@asyncio.coroutine
-	def read(self, n = -1):
+	async def read(self, n = -1):
 		if n == -1:
 			self._remaining = 0
 		else:
 			self._remaining -= n
-		
+
 		return self.buff.read(n)
 
 	async def readline(self):
@@ -88,8 +87,7 @@ class UDPReader:
 			print(e)
 		
 
-	@asyncio.coroutine
-	def readexactly(self, n):
+	async def readexactly(self, n):
 		if n == -1:
 			self._remaining = 0
 		else:
@@ -137,17 +135,15 @@ class UDPWriter:
 	def get_local_address(self):
 		return self._laddr
 
-	@asyncio.coroutine
-	def drain(self):
+	async def drain(self):
 		return
 
 	"""
-	@asyncio.coroutine
-	def write(self, data, addr = None):
+	async def write(self, data, addr = None):
 		if addr is None:
-			yield from sendto(self._loop, self._sock, data, self._addr)
+			await sendto(self._loop, self._sock, data, self._addr)
 		else:
-			yield from sendto(self._loop, self._sock, data, addr)
+			await sendto(self._loop, self._sock, data, addr)
 	"""
 
 	def write(self, data, addr = None):
@@ -173,7 +169,7 @@ class UDPClient:
 		self._loop   = loop
 		self._laddr  = None
 		if loop is None:
-			self._loop = asyncio.get_event_loop()
+			self._loop = asyncio.get_running_loop()
 
 	def start_socket(self):
 		family = socket.AF_INET if ipaddress.ip_address(self._raddr[0]).version == 4 else socket.AF_INET6
@@ -223,7 +219,7 @@ class UDPServer:
 		else:
 			self._laddr  = (str(self.listener_socket_config.bind_addr), self.listener_socket_config.bind_port)
 		if loop is None:
-			self._loop = asyncio.get_event_loop()
+			self._loop = asyncio.get_running_loop()
 
 	async def serve_forever(self):
 		if self._socket is None:

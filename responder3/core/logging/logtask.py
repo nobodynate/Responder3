@@ -20,7 +20,7 @@ from responder3.core.manager.comms import *
 class LogExtensionTaskEntry:
 	def __init__(self, taskid):
 		self.taskid = taskid
-		self.created_at = datetime.datetime.utcnow()
+		self.created_at = datetime.datetime.now(datetime.timezone.utc)
 		self.started_at = None
 		self.extension_config = None
 		self.extension_coro = None
@@ -38,7 +38,7 @@ class LogProcessor:
 		:param logQ: Queue to read logging messages from
 		:type logQ: multiprocessing.Queue
 		"""
-		self.loop = loop if loop is not None else asyncio.get_event_loop()
+		self.loop = loop if loop is not None else asyncio.get_running_loop()
 		self.log_settings = log_settings
 		self.log_queue = log_queue
 		self.manager_log_queue = manager_log_queue
@@ -202,7 +202,7 @@ class LogProcessor:
 		:return: None
 		"""
 		if 'logdir' in self.log_settings:
-			filename = 'cred_%s_%s.json' % (datetime.datetime.utcnow().isoformat(), str(uuid.uuid4()))
+			filename = 'cred_%s_%s.json' % (datetime.datetime.now(datetime.timezone.utc).isoformat(), str(uuid.uuid4()))
 			with open(str(Path(self.log_settings['logdir'], 'creds', filename).resolve()), 'wb') as f:
 				f.write(result.to_json())
 
@@ -226,7 +226,7 @@ class LogProcessor:
 		:return:
 		"""
 		if 'logdir' in self.log_settings:
-			filename = 'email_%s_%s.eml' % (datetime.datetime.utcnow().isoformat(), str(uuid.uuid4()))
+			filename = 'email_%s_%s.eml' % (datetime.datetime.now(datetime.timezone.utc).isoformat(), str(uuid.uuid4()))
 			with open(str(Path(self.log_settings['logdir'], 'emails', filename).resolve()), 'wb') as f:
 				f.write(email.email.as_bytes())
 
@@ -240,7 +240,7 @@ class LogProcessor:
 		:return: None
 		"""
 		if 'logdir' in self.log_settings:
-			filename = 'pr_%s_%s.json' % (datetime.datetime.utcnow().isoformat(), str(uuid.uuid4()))
+			filename = 'pr_%s_%s.json' % (datetime.datetime.now(datetime.timezone.utc).isoformat(), str(uuid.uuid4()))
 			with open(str(Path(self.log_settings['logdir'], 'poisondata', filename).resolve()), 'wb') as f:
 				f.write(poisonresult.to_json())
 		await self.log(repr(poisonresult))
@@ -255,7 +255,7 @@ class LogProcessor:
 		:return: None
 		"""
 		if 'logdir' in self.log_settings and self.proxy_file_handler is None:
-			filename = 'pr_%s_%s.json' % (datetime.datetime.utcnow().isoformat(), str(uuid.uuid4()))
+			filename = 'pr_%s_%s.json' % (datetime.datetime.now(datetime.timezone.utc).isoformat(), str(uuid.uuid4()))
 			self.proxy_file_handler = open(str(Path(self.log_settings['logdir'], 'proxydata', filename).resolve()), 'wb')
 
 		if self.proxy_file_handler is not None:

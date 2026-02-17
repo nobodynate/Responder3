@@ -24,12 +24,12 @@ class R3ManagerClient:
 		await self.connect_responder()
 		await self.send_command(cmd)
 
+async def _async_main():
+	client = R3ManagerClient(asyncio.get_running_loop())
+	await client.main()
+
 def main():
-	loop = asyncio.get_event_loop()
-	client = R3ManagerClient(loop)
-	loop.create_task(client.main())
-	#loop.run_until_complete()
-	loop.run_forever()
+	asyncio.run(_async_main())
 
 if __name__ == '__main__':
 	main()

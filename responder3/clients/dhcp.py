@@ -17,7 +17,7 @@ class DHCPClient():
 		self._query_TID = os.urandom(4)
 		self._soc = None
 		self._server_coro = None
-		self._loop    = asyncio.get_event_loop()
+		self._loop    = None
 		self.result = {}
 
 	def setup_socket(self):
@@ -40,13 +40,13 @@ class DHCPClient():
 		dhcpquery = DHCPMessage.construct(self._query_TID, DHCPOpcode.BOOTREQUEST, options)
 		self._soc.sendto(dhcpquery.to_bytes(), ('255.255.255.255', 67))
 
-	@asyncio.coroutine
-	def stop_loop(self):
-		yield from asyncio.sleep(1)
+	async def stop_loop(self):
+		await asyncio.sleep(1)
 		self._loop.stop()
 		return
 
 	def run(self, options = None):
+		self._loop = asyncio.new_event_loop()
 		self.setup_socket()
 		self.create_server()
 		self.send_discover(options)
@@ -62,7 +62,7 @@ class DHCPClient():
 		except Exception as e:
 			traceback.print_exc()
 			print(e)
-		
+
 	def listen_responses(self, reader, writer):
 		msg = DHCPMessage.from_buffer(reader.buff)
 		if msg.xid == self._query_TID:
@@ -81,8 +81,7 @@ class DHCPClient():
 			#not a message for us
 			pass
 
-	@asyncio.coroutine
-	def send_request(self, offer, request_options_extra = None):
+	async def send_request(self, offer, request_options_extra = None):
 		options = [DHCPOptDHCPMESSAGETYPE.construct(DHCPOptMessageType.DHCPREQUEST)]
 		options.append(DHCPOptREQUESTEDIPADDRESS.construct(offer.yiaddr))
 		options.append(DHCPOptSERVERIDENTIFIER.construct(offer.siaddr))

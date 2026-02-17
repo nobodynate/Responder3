@@ -64,6 +64,4 @@ if __name__ == '__main__':
 	
 	ip = '130.211.198.204'
 	
-	loop = asyncio.get_event_loop()
-	loop.run_until_complete(resolver.resolve(ip))
-	loop.close()
+	asyncio.run(resolver.resolve(ip))

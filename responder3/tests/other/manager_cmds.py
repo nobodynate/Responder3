@@ -52,15 +52,12 @@ if __name__ == '__main__':
 	manager_cmd_queue_out = asyncio.Queue()
 	manager_task = Responder3ManagerServer(listen_ip, listen_port, config, log_queue, log_queue, manager_cmd_queue_in, manager_cmd_queue_out, manager_shutdown_evt)
 	
-	asyncio.ensure_future(read_logs(log_queue))
-	asyncio.ensure_future(send_commands(cmdq))
-	asyncio.ensure_future(read_client(manager_cmd_queue_out))
-	asyncio.ensure_future(send_cmd(cmdq, manager_cmd_queue_in))
-	asyncio.ensure_future(manager_task.run())
+	async def _run():
+		asyncio.ensure_future(read_logs(log_queue))
+		asyncio.ensure_future(send_commands(cmdq))
+		asyncio.ensure_future(read_client(manager_cmd_queue_out))
+		asyncio.ensure_future(send_cmd(cmdq, manager_cmd_queue_in))
+		await manager_task.run()
 
-
-
-	asyncio.get_event_loop().run_forever()
-
-	time.sleep(10000)
+	asyncio.run(_run())
 	print('Done!')

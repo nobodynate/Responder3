@@ -19,7 +19,7 @@ class MDNSClient():
 		self._soc = None
 		self._server_coro = None
 		self._query_packet = None
-		self._loop    = asyncio.get_event_loop()
+		self._loop    = None
 		self.result = {}
 
 	def setup_socket(self):
@@ -49,13 +49,13 @@ class MDNSClient():
 
 		self._soc.sendto(self._query_packet.to_bytes(), self._mcast_addr)
 
-	@asyncio.coroutine
-	def stop_loop(self):
-		yield from asyncio.sleep(self.timeout)
+	async def stop_loop(self):
+		await asyncio.sleep(self.timeout)
 		self._loop.stop()
 		return
 
 	def run(self, query_names):
+		self._loop = asyncio.new_event_loop()
 		self.setup_socket()
 		self.create_server()
 		self.send_queries(query_names)

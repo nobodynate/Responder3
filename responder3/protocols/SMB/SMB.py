@@ -162,7 +162,9 @@ class SMB_COM_NEGOTIATE_REPLY:
 		return msg
 
 	@staticmethod
-	def construct(dialectindex, securitymode, sessionkey, capabilities, uuid, secblob, systemtime = datetime.datetime.utcnow()):
+	def construct(dialectindex, securitymode, sessionkey, capabilities, uuid, secblob, systemtime = None):
+		if systemtime is None:
+			systemtime = datetime.datetime.now(datetime.timezone.utc)
 		msg = SMB_COM_NEGOTIATE_REPLY()
 		msg.WordCount       = 0x11
 		msg.DialectIndex    = dialectindex

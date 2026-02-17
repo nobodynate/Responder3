@@ -20,7 +20,7 @@ class ConnectionTask:
 	def __init__(self, connection):
 		self.connection = connection
 		self.handler    = None
-		self.created_at = datetime.datetime.utcnow()
+		self.created_at = datetime.datetime.now(datetime.timezone.utc)
 		self.started_at = None
 
 class ConnectionWhatchDog:
@@ -37,7 +37,7 @@ class ConnectionWhatchDog:
 	@r3exception
 	async def run(self):
 		while not self.connection_closing_evt.is_set():
-			last_activity = (datetime.datetime.utcnow() - self.creader.last_activity).total_seconds()
+			last_activity = (datetime.datetime.now(datetime.timezone.utc) - self.creader.last_activity).total_seconds()
 			if last_activity > self.timeout:
 				print('cancelling task!')
 				self.target_task.cancel()
@@ -49,7 +49,7 @@ class Responder3ServerTask:
 	def __init__(self, log_queue = None, reverse_domain_table=None, server_command_queue=None, loop=None, rdns_resolver = None):
 		self.logger = Logger('Responder3ServerTask', logQ = log_queue)
 		self.shutdown_evt = asyncio.Event()
-		self.loop = loop if loop is not None else asyncio.get_event_loop()
+		self.loop = loop if loop is not None else asyncio.get_running_loop()
 		self.log_queue = log_queue if log_queue is not None else asyncio.Queue()
 		self.reverse_domain_table = reverse_domain_table if reverse_domain_table is not None else {}
 		self.server_command_queue = server_command_queue
@@ -101,7 +101,7 @@ class Responder3ServerTask:
 			globalsession = self.server_handler_global_session,
 			loop = self.loop
 		)
-		ct.started_at = datetime.datetime.utcnow()
+		ct.started_at = datetime.datetime.now(datetime.timezone.utc)
 		await self.logger.debug('Starting server task!')
 		self.connections[ct] = 1
 

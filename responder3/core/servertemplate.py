@@ -20,7 +20,7 @@ class ResponderServer(abc.ABC):
 	def __init__(self, server_name, settings, reader, writer, session, log_queue, socket_config, ssl_context, shutdown_evt, rdns_resolver = None,globalsession=None, loop=None):
 		self.loop = loop
 		if self.loop is None:
-			self.loop = asyncio.get_event_loop()
+			self.loop = asyncio.get_running_loop()
 
 		self.session = session
 		self.server_name = '%s[%s]' % (server_name, self.session.connection.get_remote_print_address())

@@ -6,7 +6,7 @@ class ProtocolBase(ABC):
 	@abstractmethod
 	async def from_streamreader(reader):
 		"""
-		this method needs to be decorated with @asyncio.coroutine
+		this method should be defined as async def
 		"""
 		raise NotImplementedError
 

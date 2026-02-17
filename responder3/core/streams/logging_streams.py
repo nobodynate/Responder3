@@ -7,7 +7,7 @@ class StreamReaderLogging:
 	def __init__(self, reader):
 		self.reader = reader
 		self.traffic = TrafficLog()
-		self.last_activity = datetime.datetime.utcnow()
+		self.last_activity = datetime.datetime.now(datetime.timezone.utc)
 
 	async def log_comms(self):
 		try:
@@ -29,32 +29,32 @@ class StreamReaderLogging:
 		data = await self.reader.read(n=n)
 		if not data:
 			return data
-		self.traffic.data_recv[datetime.datetime.utcnow()] = data
-		self.last_activity = datetime.datetime.utcnow()
+		self.traffic.data_recv[datetime.datetime.now(datetime.timezone.utc)] = data
+		self.last_activity = datetime.datetime.now(datetime.timezone.utc)
 		return data
 
 	async def readexactly(self, n):
 		data = await self.reader.readexactly(n)
 		if not data:
 			return data
-		self.traffic.data_recv[datetime.datetime.utcnow()] = data
-		self.last_activity = datetime.datetime.utcnow()
+		self.traffic.data_recv[datetime.datetime.now(datetime.timezone.utc)] = data
+		self.last_activity = datetime.datetime.now(datetime.timezone.utc)
 		return data
 
 	async def readuntil(self, separator=b'\n'):
 		data = await self.reader.readuntil(separator=separator)
 		if not data:
 			return data
-		self.traffic.data_recv[datetime.datetime.utcnow()] = data
-		self.last_activity = datetime.datetime.utcnow()
+		self.traffic.data_recv[datetime.datetime.now(datetime.timezone.utc)] = data
+		self.last_activity = datetime.datetime.now(datetime.timezone.utc)
 		return data
 
 	async def readline(self):
 		data = await self.reader.readline()
 		if not data:
 			return data
-		self.traffic.data_recv[datetime.datetime.utcnow()] = data
-		self.last_activity = datetime.datetime.utcnow()
+		self.traffic.data_recv[datetime.datetime.now(datetime.timezone.utc)] = data
+		self.last_activity = datetime.datetime.now(datetime.timezone.utc)
 		return data
 
 	def at_eof(self):
@@ -65,7 +65,7 @@ class StreamReaderLogging:
 		"""
 		self.reader._transport = new_transport
 		self.reader._over_ssl = True
-		self.traffic.data_recv[datetime.datetime.utcnow()] = b'<SSL SWITCH>'
+		self.traffic.data_recv[datetime.datetime.now(datetime.timezone.utc)] = b'<SSL SWITCH>'
 
 
 class StreamWriterLogging:
@@ -84,16 +84,16 @@ class StreamWriterLogging:
 		return self.traffic
 
 	def write(self, data):
-		self.traffic.data_sent[datetime.datetime.utcnow()] = data
+		self.traffic.data_sent[datetime.datetime.now(datetime.timezone.utc)] = data
 		self.writer.write(data)
 		
 	def write_broadcast(self, data, addr):
-		self.traffic.data_sent[datetime.datetime.utcnow()] = b'<BROADCAST>'
+		self.traffic.data_sent[datetime.datetime.now(datetime.timezone.utc)] = b'<BROADCAST>'
 		self.writer.write(data, addr)
-		self.traffic.data_sent[datetime.datetime.utcnow()] = data
+		self.traffic.data_sent[datetime.datetime.now(datetime.timezone.utc)] = data
 
 	def writelines(self, data):
-		self.traffic.data_sent[datetime.datetime.utcnow()] = data
+		self.traffic.data_sent[datetime.datetime.now(datetime.timezone.utc)] = data
 		self.writer.writelines(data)
 
 	def write_eof(self):
@@ -121,7 +121,7 @@ class StreamWriterLogging:
 		self.writer.transport.pause_reading()
 
 	async def switch_ssl(self, ssl_ctx):
-		loop = asyncio.get_event_loop()
+		loop = asyncio.get_running_loop()
 		protocol = self.writer.transport.get_protocol()
 		new_transport = await loop.start_tls(
 			self.writer.transport, 
@@ -135,6 +135,6 @@ class StreamWriterLogging:
 		self.writer._protocol._transport = new_transport
 		self.writer._over_ssl = True
 
-		self.traffic.data_sent[datetime.datetime.utcnow()] = b'<SSL SWITCH>'
+		self.traffic.data_sent[datetime.datetime.now(datetime.timezone.utc)] = b'<SSL SWITCH>'
 
 		return new_transport

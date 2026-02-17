@@ -117,7 +117,7 @@ class ProxyData:
 		self.dst_addr  = None
 		self.proto     = None
 		self.isSSL     = None
-		self.timestamp = datetime.datetime.utcnow()
+		self.timestamp = datetime.datetime.now(datetime.timezone.utc)
 		self.data_type = None
 		self.data      = None
 
@@ -365,7 +365,7 @@ class ConnectionClosed:
 	def __init__(self, connection, module = None):
 		self.module = module
 		self.connection = connection
-		self.disconnect_time = datetime.datetime.utcnow()
+		self.disconnect_time = datetime.datetime.now(datetime.timezone.utc)
 		self.total_connection_time_s = (self.disconnect_time - self.connection.timestamp).total_seconds()
 		
 	def to_dict(self):

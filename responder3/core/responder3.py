@@ -30,13 +30,13 @@ class ServerTaskEntry:
 		self.command_channel_manager = asyncio.Queue()
 		self.command_channel_client = asyncio.Queue()
 		#self.shutdown_event = asyncio.Event()
-		self.created_at = datetime.datetime.utcnow()
+		self.created_at = datetime.datetime.now(datetime.timezone.utc)
 		self.started_at = None
 
 
 class Responder3:
 	def __init__(self):
-		self.loop = asyncio.get_event_loop()
+		self.loop = None
 		self.config = None
 
 		self.reverse_domain_table = {}
@@ -180,7 +180,7 @@ class Responder3:
 		ste.server = await ste.task.create_server(temp)
 		self.server_tasks[ste.taskid] = ste
 		asyncio.ensure_future(ste.server.serve_forever())
-		ste.started_at = datetime.datetime.utcnow()
+		ste.started_at = datetime.datetime.now(datetime.timezone.utc)
 		del temp
 
 		return ste.taskid
@@ -379,6 +379,7 @@ class Responder3:
 	@r3exception
 	async def run(self):
 		try:
+			self.loop = asyncio.get_running_loop()
 			if self.config.manager_settings is not None:
 				if self.config.manager_settings['mode'] == 'CLIENT':
 					self.manager_log_queue = asyncio.Queue()

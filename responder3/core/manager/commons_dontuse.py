@@ -9,11 +9,11 @@ import datetime
 from responder3.core.commons import *
 
 class LogMsg:
-	def __init__(self, src, level, msg, timestamp = datetime.datetime.utcnow()):
+	def __init__(self, src, level, msg, timestamp = None):
 		self.src = src
 		self.level = level
 		self.msg = msg
-		self.timestamp = timestamp
+		self.timestamp = timestamp if timestamp is not None else datetime.datetime.now(datetime.timezone.utc)
 		
 	def to_dict(self):
 		t = {}
@@ -73,7 +73,7 @@ class Logger:
 		if self.logger:
 			await self.logger.log(level, msg)
 			return
-		print('%s %s %s %s' % (datetime.datetime.utcnow().isoformat(), self.name, level, msg))
+		print('%s %s %s %s' % (datetime.datetime.now(datetime.timezone.utc).isoformat(), self.name, level, msg))
 		
 	async def handle_consumers(self, level, msg):
 		try:

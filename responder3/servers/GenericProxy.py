@@ -114,7 +114,7 @@ class GenericProxy(ResponderServer):
 	async def run(self):
 		await self.logger.debug('Starting task!')
 		await self.logger.debug('Setting up remote connection!')
-		loop = asyncio.get_event_loop()
+		loop = asyncio.get_running_loop()
 		
 		if self.listener_socket_config.bind_protocol == socket.SOCK_STREAM:
 			self.proxy_reader, self.proxy_writer = await asyncio.wait_for(asyncio.open_connection(host=self.remote_host,port = self.remote_port, ssl=self.proxy_sslctx), timeout=self.timeout)

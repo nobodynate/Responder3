@@ -108,7 +108,6 @@ class R3ConnectionClosed(Exception):
 	pass
 
 
-@asyncio.coroutine
 async def wait_mp_event(event, aio_event):
 	event.wait(timeout = None)
 	aio_event.set()

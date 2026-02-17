@@ -45,7 +45,7 @@ class Logger:
 			print('Logger run exception! %s' % e)
 			
 	async def handle_logger(self, msg):
-		print('%s %s %s %s' % (datetime.datetime.utcnow().isoformat(), self.name, level, msg))
+		print('%s %s %s %s' % (datetime.datetime.now(datetime.timezone.utc).isoformat(), self.name, level, msg))
 		
 	async def handle_consumers(self, msg):
 		try:
@@ -148,7 +148,7 @@ class Logger:
 		proxydata.dst_addr  = raddr
 		proxydata.proto     = proto
 		proxydata.isSSL     = is_ssl
-		proxydata.timestamp = datetime.datetime.utcnow()
+		proxydata.timestamp = datetime.datetime.now(datetime.timezone.utc)
 		proxydata.data_type = data_type
 		proxydata.data      = data
 		proxydata.module = self.name
